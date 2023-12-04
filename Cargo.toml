@@ -9,7 +9,7 @@ repository = "https://github.com/yesint/uni_rc_lock"
 documentation = "https://docs.rs/uni_rc_lock"
 description = "Provides a trait which may represent either Rc<RefCell<T>> or Arc<RwLock<T>>"
 readme = "README.md"
-keywords = ["smart pointer","lock","rc","arc"]
+keywords = ["smart_pointer","lock","rc","arc"]
 categories = ["rust-patterns","memory-management","concurrency"]
 
 [dependencies]
