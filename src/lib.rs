@@ -127,7 +127,7 @@ use std::{
 /// An actual trait that does the job.
 /// Due to associated lifetimes it is tedious to use, so the convenience
 /// wrapper [`UniRcLock`] is provided.
-pub trait UniversalRcLock<'a, T> {
+pub trait UniversalRcLock<'a, T>: Clone {
     type OutRead: Deref<Target = T> + 'a;
     type OutWrite: DerefMut<Target = T> + 'a;
     /// Obtain a scoped guard for reading
