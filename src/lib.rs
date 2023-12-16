@@ -116,6 +116,8 @@ impl<T: UniRcLock<State>> StateHandler<T> {
 Expectibly, this example won't compile with `Rc` since it doesn't implement `Send`.
 */
 
+//===============================================================
+
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -128,8 +130,8 @@ use std::{
 /// Due to associated lifetimes it is tedious to use, so the convenience
 /// wrapper [`UniRcLock`] is provided.
 pub trait UniversalRcLock<'a, T>: Clone {
-    type OutRead: Deref<Target = T> + 'a;
-    type OutWrite: DerefMut<Target = T> + 'a;
+    type OutRead: Deref<Target = T>;
+    type OutWrite: DerefMut<Target = T>;
     /// Obtain a scoped guard for reading
     fn read(&'a self) -> Self::OutRead;
     /// Obtain a scoped guard for writing
