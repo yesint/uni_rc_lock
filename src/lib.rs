@@ -1,13 +1,13 @@
 /*! 
-This crate provides a trait for universal reference-counted lock
-with internal mutability
+A trait for universal reference-counted lock
+with interior mutability
 allowing multiple readers or a single writer,
 which may represent either `Rc<RefCell<T>>` or `Arc<RwLock<T>>`.
 
 # Basics
 ## Motivation
 The `Rc<RefCell<T>>` and `Arc<RwLock<T>>` are idiomatic ways of expressing
-internal mutability in Rust in the single-threaded and multi-threaded
+interior mutability in Rust in the single-threaded and multi-threaded
 scenarious respectively. Both types provide essentially the same interface
 with multiple readers or a single writer for their managed data.
 
@@ -34,7 +34,7 @@ the lock is poisoned.
 A generic function which accepts both `Rc<RefCell<T>>` and `Arc<RwLock<T>>`:
 ```
 # use std::{rc::Rc, cell::RefCell, sync::{Arc, RwLock}};
-# use uni_rc_lock::{UniRcLock,UniversalRcLock};
+# use uni_rc_lock::UniRcLock;
 #
 #[derive(Debug)]
 struct Foo(i32);
@@ -56,7 +56,7 @@ println!("After increment: {:?}", ptr2);
 Example of generic struct, which can hold either `Rc<RefCell<T>>` or `Arc<RwLock<T>>`:
 ```
 # use std::{rc::Rc, cell::RefCell, sync::{Arc, RwLock}};
-# use uni_rc_lock::{UniRcLock,UniversalRcLock};
+# use uni_rc_lock::UniRcLock;
 # use std::thread;
 #
 // A user struct
@@ -126,53 +126,47 @@ use std::{
     rc::Rc,
 };
 
-/// An actual trait that does the job.
-/// Due to associated lifetimes it is tedious to use, so the convenience
-/// wrapper [`UniRcLock`] is provided.
-pub trait UniversalRcLock<'a, T>: Clone {
-    type OutRead: Deref<Target = T>;
-    type OutWrite: DerefMut<Target = T>;
+/// A common trait for `Rc<RefCell<T>>` and `Arc<RwLock<T>>` 
+pub trait UniRcLock<T>: Clone {
+    type OutRead<'a>: Deref<Target = T> where Self: 'a;
+    type OutWrite<'a>: DerefMut<Target = T> where Self: 'a;
     /// Obtain a scoped guard for reading
-    fn read(&'a self) -> Self::OutRead;
+    fn read<'a>(&'a self) -> Self::OutRead<'a>;
     /// Obtain a scoped guard for writing
-    fn write(&'a self) -> Self::OutWrite;
+    fn write<'a>(&'a self) -> Self::OutWrite<'a>;
 }
 
 // Implementation for Rc<RefCell<T>>
-impl<'a, T: 'a> UniversalRcLock<'a, T> for Rc<RefCell<T>> {
-    type OutRead = Ref<'a, T>;
-    type OutWrite = RefMut<'a, T>;
+impl<T> UniRcLock<T> for Rc<RefCell<T>> {
+    type OutRead<'a> = Ref<'a, T> where T: 'a;
+    type OutWrite<'a> = RefMut<'a, T> where T: 'a;
 
-    fn read(&'a self) -> Self::OutRead {
+    fn read<'a>(&'a self) -> Self::OutRead<'a> {
         Rc::deref(self).borrow()
     }
 
-    fn write(&'a self) -> Self::OutWrite {
+    fn write<'a>(&'a self) -> Self::OutWrite<'a> {
         Rc::deref(self).borrow_mut()
     }
 }
 
 // Implementation for Arc<RwLock<T>>
-impl<'a, T: 'a> UniversalRcLock<'a, T> for Arc<RwLock<T>> {
-    type OutRead = RwLockReadGuard<'a, T>;
-    type OutWrite = RwLockWriteGuard<'a, T>;
+impl<T> UniRcLock<T> for Arc<RwLock<T>> {
+    type OutRead<'a> = RwLockReadGuard<'a, T> where T: 'a;
+    type OutWrite<'a> = RwLockWriteGuard<'a, T> where T: 'a;
 
-    fn read(&'a self) -> Self::OutRead {
+    fn read<'a>(&'a self) -> Self::OutRead<'a> {
         Arc::deref(self)
             .read()
             .expect("Read lock should not be poisoned")
     }
 
-    fn write(&'a self) -> Self::OutWrite {
+    fn write<'a>(&'a self) -> Self::OutWrite<'a> {
         Arc::deref(self)
             .write()
             .expect("Write lock should not be poisoned")
     }
 }
-
-/// The convenience trait, which is free from lifetimes and is trivial to use.
-pub trait UniRcLock<T>: for<'a> UniversalRcLock<'a, T> {}
-impl<T, U> UniRcLock<T> for U where U: for<'a> UniversalRcLock<'a, T> {}
 
 #[cfg(test)]
 mod tests {
@@ -182,7 +176,7 @@ mod tests {
         sync::{Arc, RwLock},
     };
 
-    use super::{UniRcLock, UniversalRcLock};
+    use super::UniRcLock;
 
     #[derive(Debug)]
     struct State {
